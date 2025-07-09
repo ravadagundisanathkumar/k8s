@@ -1,0 +1,45 @@
+----Cluster creating using kops--------
+Create an instance :- ubuntu -22.04 , t2.medium , size:-15 . sg :- kube-sg
+-Install awscli
+  apt install unzip -y
+  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+  unzip awscliv2.zip
+  sudo ./aws/install
+  aws configure
+-Install kubectl
+  curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+  sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+  kubectl version --client
+-Install kops
+  curl -Lo kops https://github.com/kubernetes/kops/releases/download/$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)/kops-linux-amd64
+  chmod +x ./kops
+  sudo mv ./kops /usr/local/bin/
+  kops version
+Create an IAM user/role with Route53, EC2, IAM and S3 full access
+Attach IAM role to ubuntu server :- Instance -> actions -> security -> modify iam -> attach role
+Create a Route53 private hosted zone :- route53 -> create hosted zone 
+Domanin Name :- some_name.in
+Type :- private hosted zone
+Region :- us-east-1
+vpc id :- default
+Create hosted zone
+Create s3 bucket using command line
+  aws s3 mb s3://dev.k8s.mansi-kops-2610.sreeja.in [change name before creating:- name should be like bucket_name.dns_name(route53 zone)]
+To check 
+  aws s3 ls
+  export KOPS_STATE_STORE=s3://dev.k8s.mansi-kops-2610.sreeja.in
+generate ssh-key:-
+  ssh-keygen
+create cluster                                                  
+  kops create cluster --cloud=aws --zones=us-east-1a --name=dev.k8s.mansi-kops-2610.sreeja.in --dns-zone=sreeja.in --dns private
+  kops update cluster --name dev.k8s.mansi-kops-2610.sreeja.in --yes --admin
+  kops validate cluster  (it takes some time to be active dont worry)
+  kubectl get nodes
+----Deploying Nginx container on Kubernetes--------
+ kubectl create deployment sample-nginx --image=nginx
+   kubectl scale deployment sample-nginx --replicas=2
+   kubectl get pods
+   kubectl expose deployment sample-nginx --port=80 --target-port=80 --type=LoadBalancer
+   kubectl get svc
+-----Deleting cluster ---------
+kops delete cluster dev.k8s.sanjayskv.in --yes
